@@ -36,6 +36,13 @@ class Glyph:
 			raise Exception(f"Incompatible sizes: {self.width}x{self.height} != {other.width}x{other.height}")
 		return Glyph(self.width, self.height, np.logical_or(self.data, other.data))
 
+	def scale(self, x_mul, y_mul):
+		new_data = np.zeros((self.height * y_mul, self.width * x_mul), dtype=bool)
+		for iy in range(0, y_mul * self.height):
+			for ix in range(0, x_mul * self.width):
+				new_data[iy][ix] = self.data[int(iy / y_mul)][int(ix / x_mul)]
+		return Glyph(self.width * x_mul, self.height * y_mul, new_data)
+
 	def resize(self, new_width, new_height):
 		if (new_width == self.width) and (new_height == self.height):
 			return self
@@ -99,7 +106,7 @@ class GlyphSet:
 			func(glyph)
 			return glyph
 
-	def get(self, key):
+	def get(self, key) -> Glyph:
 		key = self.__key_to_int(key)
 		return self.glyphs[key]
 
@@ -163,8 +170,17 @@ def glyphset_to_image(gs: GlyphSet, filename):
 		gx = int(gk % glyph_width_multiplier) * glyph_width
 		gy = int(gk / glyph_width_multiplier) * glyph_height
 		glyph = gs.glyphs[gk]
-		for iy in range(glyph_height):
-			for ix in range(glyph_width):
+		for iy in range(glyph.height):
+			for ix in range(glyph.width):
 				if glyph.data[iy][ix]:
 					im.putpixel((gx+ix, gy+iy), 0)
 	im.save(filename)
+
+def copy_halfwidth_to_fullwidth(gs: GlyphSet, overwrite=False):
+	for x in range(0x21, 0x7F):
+		y = (x + 0xFF01 - 0x21)
+		gl = gs.get(x)
+		if gl is not None:
+			if gs.width_mode == GlyphSetWidthMode.DOUBLE_FIXED_WIDTH:
+				gl = gl.scale(2, 1)
+			gs.put(y, gl, overwrite=overwrite)
