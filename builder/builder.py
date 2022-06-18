@@ -106,6 +106,10 @@ class GlyphSet:
 			func(glyph)
 			return glyph
 
+	def contains(self, key) -> bool:
+		key = self.__key_to_int(key)
+		return key in self.glyphs
+
 	def get(self, key) -> Glyph:
 		key = self.__key_to_int(key)
 		return self.glyphs[key]
